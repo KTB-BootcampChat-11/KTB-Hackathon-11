@@ -12,6 +12,8 @@ jobs:
       frontend: ${{ steps.frontend.outputs.changed }}
       backend: ${{ steps.backend.outputs.changed }}
       fastapi: ${{ steps.fastapi.outputs.changed }}
+      tag_changed: ${{ steps.tag.outputs.tag_changed }}
+      image_tag: ${{ steps.get_tag.outputs.image_tag }}
 
     steps:
       - uses: actions/checkout@v5
@@ -45,8 +47,38 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Detect IMAGE_TAG bump
+        id: tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          NEW_TAG="$(grep '^IMAGE_TAG=' deploy_versions.env | cut -d'=' -f2 | tr -d '\r')"
+          echo "image_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+
+          if git cat-file -e "${BEFORE}:deploy_versions.env" 2>/dev/null; then
+            OLD_TAG="$(git show "${BEFORE}:deploy_versions.env" | grep '^IMAGE_TAG=' | cut -d'=' -f2 | tr -d '\r' || true)"
+          else
+            OLD_TAG=""
+          fi
+
+          if [[ -n "$NEW_TAG" && "$NEW_TAG" != "$OLD_TAG" ]]; then
+            echo "tag_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read version of image tags
+        id: get_tag
+        run: |
+          IMAGE_TAG=$(grep '^IMAGE_TAG=' deploy_versions.env | cut -d'=' -f2)
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
   frontend-cd:
-    if: needs.detect-changes.outputs.frontend == 'true' && github.event_name == 'push'
+    needs: detect-changes
+    if: github.event_name == 'push' && needs.detect-changes.outputs.tag_changed == 'true' && needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -80,7 +112,7 @@ jobs:
             $EC2_USER@$NGINX_HOST:/var/www/frontend
 
   backend-cd:
-    if: needs.detect-changes.outputs.backend == 'true' && github.event_name == 'push'
+    if: github.event_name == 'push' && needs.detect-changes.outputs.tag_changed == 'true' && needs.detect-changes.outputs.backend == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -130,7 +162,7 @@ jobs:
           EOF
 
   fastapi-cd:
-    if: needs.detect-changes.outputs.fastapi == 'true' && github.event_name == 'push'
+    if: github.event_name == 'push' && needs.detect-changes.outputs.tag_changed == 'true' && needs.detect-changes.outputs.fastapi == 'true'     
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
