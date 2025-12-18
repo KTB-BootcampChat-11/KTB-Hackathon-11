@@ -28,6 +28,7 @@ interface Recipe {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL + "/api/chat";
+const PRESIGNED_API_BASE = import.meta.env.VITE_API_BASE_URL + "/api/presigned-url";
 
 const getAuthHeaders = () => {
     const email = localStorage.getItem("login_email");
@@ -168,14 +169,7 @@ export default function ChatRoom() {
             let imageBase64: string | null = null;
 
             if (selectedImage) {
-                const reader = new FileReader();
-                imageBase64 = await new Promise<string>((resolve) => {
-                    reader.onloadend = () => {
-                        const base64 = (reader.result as string).split(',')[1];
-                        resolve(base64);
-                    };
-                    reader.readAsDataURL(selectedImage);
-                });
+                imageUrl = await uploadImageToS3(selectedImage);
             }
 
             const response = await fetch(`${API_BASE}/message`, {
@@ -185,7 +179,7 @@ export default function ChatRoom() {
                     session_id: sessionId,
                     step_number: currentStep,
                     message: inputText || '이 사진 봐줘',
-                    image_base64: imageBase64
+                    image_url: imageUrl // ⭐ 핵심 변경
                 })
             });
 
