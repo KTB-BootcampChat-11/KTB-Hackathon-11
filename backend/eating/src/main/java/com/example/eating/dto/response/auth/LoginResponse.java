@@ -7,5 +7,6 @@ import lombok.Getter;
 @Builder
 public class LoginResponse {
     private boolean isLoginSuccess;
-    private String loginId;
+    private String email;
+    private String nickname;
 }
