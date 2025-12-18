@@ -69,8 +69,14 @@ def split_into_sentences(response) -> list:
     """
     import re
 
+    def _get(obj, key, default=None):
+        """response가 dict/객체 어떤 형태든 안전하게 값을 꺼낸다."""
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
+
     # word 정보가 있으면 사용, 없으면 segment 사용
-    words = getattr(response, 'words', None)
+    words = _get(response, 'words', None)
 
     if not words:
         # word 정보 없으면 기존 segment 방식
@@ -78,9 +84,9 @@ def split_into_sentences(response) -> list:
         if hasattr(response, 'segments') and response.segments:
             for segment in response.segments:
                 segments.append({
-                    'start': getattr(segment, 'start', 0),
-                    'end': getattr(segment, 'end', 0),
-                    'text': getattr(segment, 'text', '').strip()
+                    'start': _get(segment, 'start', 0),
+                    'end': _get(segment, 'end', 0),
+                    'text': _get(segment, 'text', '').strip()
                 })
         return segments
 
@@ -98,9 +104,9 @@ def split_into_sentences(response) -> list:
     current_start = None
 
     for word in words:
-        word_text = getattr(word, 'word', '').strip()
-        word_start = getattr(word, 'start', 0)
-        word_end = getattr(word, 'end', 0)
+        word_text = _get(word, 'word', '').strip()
+        word_start = _get(word, 'start', 0)
+        word_end = _get(word, 'end', 0)
 
         if current_start is None:
             current_start = word_start
@@ -128,7 +134,7 @@ def split_into_sentences(response) -> list:
         if sentence_text:
             sentences.append({
                 'start': current_start,
-                'end': getattr(words[-1], 'end', 0),
+                'end': _get(words[-1], 'end', 0),
                 'text': sentence_text
             })
 
@@ -136,9 +142,9 @@ def split_into_sentences(response) -> list:
     if not sentences and hasattr(response, 'segments') and response.segments:
         for segment in response.segments:
             sentences.append({
-                'start': getattr(segment, 'start', 0),
-                'end': getattr(segment, 'end', 0),
-                'text': getattr(segment, 'text', '').strip()
+                'start': _get(segment, 'start', 0),
+                'end': _get(segment, 'end', 0),
+                'text': _get(segment, 'text', '').strip()
             })
 
     return sentences
