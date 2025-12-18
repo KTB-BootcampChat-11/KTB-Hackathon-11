@@ -201,7 +201,7 @@ export function subscribe(
         onError?: (e: any) => void;
     }
 ) {
-    const es = new EventSource(`http://localhost:8080/api/sse/jobs/${jobId}`);
+    const es = new EventSource(import.meta.env.VITE_API_BASE_URL + `/api/sse/jobs/${jobId}`);
     const safeJson = (e: MessageEvent) => {
         try {
             return JSON.parse(e.data);
