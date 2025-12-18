@@ -235,6 +235,9 @@ export default function ChatRoom() {
         if (!inputText.trim() && !selectedImage) return;
         if (!sessionId) return;
 
+        const imageFile = selectedImage;
+        const preview = imagePreview;
+
         const userMessage: Message = {
             id: makeId(),
             role: 'user',
@@ -249,11 +252,17 @@ export default function ChatRoom() {
 
         setMessages(prev => [...prev, userMessage]);
         setInputText('');
+        setSelectedImage(null);
+        setImagePreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+
         setIsLoading(true);
 
         try {
             let imageUrl: string | null = null;
-            if (selectedImage) imageUrl = await uploadImageToS3(selectedImage);
+            if (imageFile) imageUrl = await uploadImageToS3(imageFile);
 
             const response = await fetch(`${API_BASE}/message`, {
                 method: 'POST',
@@ -295,7 +304,6 @@ export default function ChatRoom() {
             }]);
         } finally {
             setIsLoading(false);
-            removeImage();
         }
     };
 
