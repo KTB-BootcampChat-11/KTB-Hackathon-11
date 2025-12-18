@@ -70,12 +70,18 @@ def _create_progress_hook(label: str):
 
 def _get_ydl_base_opts() -> Dict:
     """기본 yt-dlp 옵션을 반환합니다."""
-    return {
+    opts = {
         "quiet": True,
         "no_warnings": True,
         "socket_timeout": 30,
         "retries": 3,
     }
+
+    cookie_path = Path(__file__).parent.parent / "cookies.txt"
+    if cookie_path.exists():
+        opts["cookiefile"] = str(cookie_path)
+
+    return opts
 
 
 def _handle_download_error(error: Exception, context: str) -> None:
@@ -112,6 +118,11 @@ def extract_video_id(url: str) -> Optional[str]:
         r"(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)",
         r"(?:youtu\.be\/)([a-zA-Z0-9_-]+)",
         r"(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]+)",
+        
+        r"(?:^|\/\/)(?:www\.|m\.)?tiktok\.com\/@[^/]+\/video\/(\d+)",
+
+        r"(?:^|\/\/)(?:www\.)?instagram\.com\/reel\/([a-zA-Z0-9_-]+)\/?",
+        r"(?:^|\/\/)(?:www\.)?instagram\.com\/(?:reel|p|tv)\/([a-zA-Z0-9_-]+)\/?",
     ]
 
     for pattern in patterns:
